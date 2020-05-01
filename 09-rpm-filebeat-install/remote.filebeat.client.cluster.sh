@@ -9,7 +9,7 @@ NODE06=10.10.6.159
 
 for Y in $NODE{01..06}
 do
-   ssh -i /home/dihogoteixeira/Documents/.key/yh-monit.pem ec2-user@$NODE$Y \
+   ssh -i /home/dihogoteixeira/Documents/.key/elk-cluster.pem ec2-user@$NODE$Y \
        'bash -s' < /home/dihogoteixeira/Documents/dteixeira-core/elk-stack-template-tf/09-rpm-filebeat-install/filebeat.daemon.install.sh
 done
 

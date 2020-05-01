@@ -22,7 +22,7 @@ spec:
         - name: alb-ingress-controller
           args:
             - --ingress-class=alb
-            - --cluster-name=yh-monit
+            - --cluster-name=elk-cluster
             - --aws-vpc-id=vpc-05c7ec62
             - --aws-region=us-east-1
             - --aws-api-debug
