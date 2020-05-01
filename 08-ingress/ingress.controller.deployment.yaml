@@ -1,0 +1,65 @@
+# Application Load Balancer (ALB) Ingress Controller Deployment Manifest.
+# This manifest details sensible defaults for deploying an ALB Ingress Controller.
+# GitHub: https://github.com/kubernetes-sigs/aws-alb-ingress-controller
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: alb-ingress-controller
+  name: alb-ingress-controller
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: alb-ingress-controller
+  template:
+    metadata:
+      labels:
+        app: alb-ingress-controller
+    spec:
+      containers:
+        - name: alb-ingress-controller
+          args:
+            - --ingress-class=alb
+            - --cluster-name=yh-monit
+            - --aws-vpc-id=vpc-05c7ec62
+            - --aws-region=us-east-1
+            - --aws-api-debug
+          image: docker.io/amazon/aws-alb-ingress-controller:v1.1.4
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+      serviceAccountName: alb-ingress-controller
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: monitoring
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{"service.beta.kubernetes.io/aws-load-balancer-additional-resource-tags":"Environment=Monitoramento,EnvironmentType=PROD,Project=monitoramento","service.beta.kubernetes.io/aws-load-balancer-backend-protocol":"http","service.beta.kubernetes.io/aws-load-balancer-internal":"0.0.0.0/0"},"labels":{"app":"alb-ingress-controller"},"name":"alb-ingress-controller","namespace":"monitoring"},"spec":{"ports":[{"port":80,"targetPort":80}],"selector":{"app":"alb-ingress-controller","role":"alb-ingress-controller"},"type":"LoadBalancer"}}
+    service.beta.kubernetes.io/aws-load-balancer-additional-resource-tags: Environment=Monitoramento,EnvironmentType=PROD,Project=monitoramento
+    service.beta.kubernetes.io/aws-load-balancer-ssl-cert: arn:aws:acm:us-east-1:${ACCOUNT_NUMBER}:certificate/9b898bbb-d0a3-4368-a545-4387007d2a2b
+    service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "https"
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: http
+    service.beta.kubernetes.io/aws-load-balancer-internal: 0.0.0.0/0
+  creationTimestamp: null
+  labels:
+    app: alb-ingress-controller
+  name: alb-ingress-controller
+  selfLink: /api/v1/namespaces/monitoring/services/alb-ingress-controller
+spec:
+  externalTrafficPolicy: Cluster
+  ports:
+    - port: 80
+      targetPort: 80
+      name: http
+    - port: 443
+      targetPort: 443
+      name: https
+  selector:
+    app: alb-ingress-controller
+    role: alb-ingress-controller
+  sessionAffinity: None
+  type: LoadBalancer

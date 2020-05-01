@@ -1,0 +1,16 @@
+# apm.service.yml
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: monitoring
+  name: apm-server
+  labels:
+    app: apm-server
+spec:
+  ports:
+  - port: 8200
+    name: apm-server
+  selector:
+    app: apm-server
+---

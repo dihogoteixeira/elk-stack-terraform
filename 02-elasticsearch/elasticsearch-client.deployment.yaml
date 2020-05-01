@@ -1,0 +1,103 @@
+# elasticsearch-client.deployment.yaml
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: monitoring
+  name: elasticsearch-client
+  labels:
+    app: elasticsearch
+    role: client
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: elasticsearch
+      role: client
+  template:
+    metadata:
+      labels:
+        app: elasticsearch
+        role: client
+    spec:
+
+      # spec.template.spec.initContainers
+      initContainers:
+        # Fix the permissions on the volume.
+        # https://www.elastic.co/guide/en/elasticsearch/reference/current/docker.html#_notes_for_production_use_and_defaults
+        - name: fix-the-volume-permission
+          image: docker.elastic.co/elasticsearch/elasticsearch:7.5.2
+          command: ['sh', '-c', 'chown -R 1000:1000 /usr/share/elasticsearch/data']
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - name: storage
+              mountPath: /usr/share/elasticsearch/data
+        # Increase the default vm.max_map_count to 262144
+        # https://www.elastic.co/guide/en/elasticsearch/reference/current/docker.html#docker-cli-run-prod-mode
+        - name: increase-the-vm-max-map-count
+          image: docker.elastic.co/elasticsearch/elasticsearch:7.5.2
+          command: ['sysctl', '-w', 'vm.max_map_count=262144']
+          securityContext:
+            privileged: true
+        # Increase the ulimit
+        # https://www.elastic.co/guide/en/elasticsearch/reference/current/docker.html#_notes_for_production_use_and_defaults
+        - name: increase-the-ulimit
+          image: docker.elastic.co/elasticsearch/elasticsearch:7.5.2
+          command: ['sh', '-c', 'ulimit -n 65536']
+          securityContext:
+            privileged: true
+
+      # spec.template.spec.containers
+      containers:
+        - name: elasticsearch-client
+          image: docker.elastic.co/elasticsearch/elasticsearch:7.5.2
+          ports:
+            - containerPort: 9200
+              name: client         
+            - containerPort: 9300
+              name: transport
+          livenessProbe:
+            tcpSocket:
+              port: transport
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: "0.25"
+            limits:
+              cpu: 1
+              memory: 1Gi
+          # spec.template.spec.containers[elasticsearch].env
+          env:
+            - name: NODE_LIST
+              value: "elasticsearch-master.monitoring.svc.cluster.local"
+            - name: MASTER_NODES
+              value: "elasticsearch-master-0,elasticsearch-master-1,elasticsearch-master-2"
+            - name: ES_JAVA_OPTS
+              value: -Xms256m -Xmx256m
+            - name: CLUSTER_NAME
+              value: elasticsearch
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+
+          # spec.template.spec.containers[elasticsearch].volumeMounts
+          volumeMounts:
+            - name: config
+              mountPath: /usr/share/elasticsearch/config/elasticsearch.yml
+              readOnly: true
+              subPath: elasticsearch.yml
+            - name: storage
+              mountPath: /usr/share/elasticsearch/data
+
+      # spec.template.spec
+      volumes:
+        - name: config
+          configMap:
+            name: elasticsearch-client-config
+        - name: "storage"
+          emptyDir:
+           medium: ""      
+---

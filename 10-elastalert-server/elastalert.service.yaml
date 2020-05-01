@@ -1,0 +1,16 @@
+# elastalert.service.yaml
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: monitoring
+  name: elastalert
+  labels:
+    app: elastalert
+spec:
+  ports:
+    - port: 3030
+      name: elastalert
+  selector:
+    app: elastalert
+---

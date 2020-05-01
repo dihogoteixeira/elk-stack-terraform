@@ -1,0 +1,67 @@
+# metricbeat.settings.configmap.yml
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: monitoring
+  name: metricbeat-config
+  labels:
+    app: metricbeat
+data:
+  metricbeat.yml: |-
+
+    # Configure modules
+    metricbeat.modules:
+      - module: system
+        period: ${PERIOD}
+        metricsets: ["cpu", "load", "memory", "network", "process", "process_summary", "core", "diskio", "socket"]
+        processes: ['.*']
+        process.include_top_n:
+          by_cpu: 5      # include top 5 processes by CPU
+          by_memory: 5   # include top 5 processes by memory
+
+      - module: system
+        period: ${PERIOD}
+        metricsets:  ["filesystem", "fsstat"]
+        processors:
+        - drop_event.when.regexp:
+            system.filesystem.mount_point: '^/(sys|cgroup|proc|dev|etc|host|lib)($|/)'
+
+      - module: docker
+        period: ${PERIOD}
+        hosts: ["unix:///var/run/docker.sock"]
+        metricsets: ["container", "cpu", "diskio", "healthcheck", "info", "memory", "network"]
+
+      - module: kubernetes
+        enabled: true
+        period: ${PERIOD}
+        host: ${NODE_NAME}
+        hosts: ["localhost:10255"]
+        metricsets: [ "container", "node", "pod", "system", "volume"]
+
+      - module: kubernetes
+        enabled: true
+        period: ${PERIOD}
+        host: ${NODE_NAME}
+        metricsets: ["state_node", "state_deployment", "state_replicaset",
+                     "state_statefulset", "state_pod", "state_container",
+                     "state_cronjob", "state_resourcequota"]
+        hosts: ["kube-state-metrics.kube-system.svc.cluster.local:8080"]
+
+    # Connection to ElasticSearch
+    output.elasticsearch:
+      hosts: ['${ELASTICSEARCH_HOST:elasticsearch}:${ELASTICSEARCH_PORT:9200}']
+      username: ${ELASTICSEARCH_USERNAME}
+      password: ${ELASTICSEARCH_PASSWORD}
+
+    # Connection to Kibana to import pre-existing dashboards
+    setup.kibana:
+      host: '${KIBANA_HOST:kibana}:${KIBANA_PORT:5601}'
+
+    # Import pre-existing dashboards
+    setup.dashboards.enabled: true
+
+    # Configure indice lifecycle
+    setup.ilm:
+      policy_file: /etc/indice-lifecycle.json
+---

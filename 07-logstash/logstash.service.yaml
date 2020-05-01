@@ -1,0 +1,16 @@
+# logstash.service.yaml
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: monitoring
+  name: logstash
+  labels:
+    app: logstash
+spec:
+  ports:
+  - port: 5044
+    name: logstash
+  selector:
+    app: logstash
+---

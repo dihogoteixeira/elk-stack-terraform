@@ -1,0 +1,27 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: monitoring
+  name: grafana-ingest
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-internal: 0.0.0.0/0
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: http
+    service.beta.kubernetes.io/aws-load-balancer-additional-resource-tags: "Environment=Monitoramento,EnvironmentType=PROD,Project=monitoramento"
+    service.beta.kubernetes.io/aws-load-balancer-ssl-cert: arn:aws:acm:us-east-1:${ACCOUNT_NUMBER}:certificate/9b898bbb-d0a3-4368-a545-4387007d2a2b
+    service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "443"
+  labels:
+    app.kubernetes.io/instance: grafana
+    app.kubernetes.io/name: grafana
+spec:
+  ports:
+    - port: 80
+      targetPort: 3000
+      name: http
+    - port: 443
+      targetPort: 3000
+      name: https
+  selector:
+    app.kubernetes.io/instance: grafana
+    app.kubernetes.io/name: grafana
+  type: LoadBalancer

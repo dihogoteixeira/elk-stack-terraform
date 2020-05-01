@@ -1,0 +1,21 @@
+# Rule name, must be unique
+es_host: ${ELASTICSEARCH_HOST}
+es_port: ${ELASTICSEARCH_PORT}
+name: cloudwatch FunctionName
+type: frequency
+index: metricbeat-*
+num_events: 3
+timeframe:
+  hours: 1
+filter:
+  - term:
+      aws.cloudwatch.dimensions.FunctionName : "b2b-api-prod"
+alert:
+  - "email"
+email:
+  - "dihogo.teixeira@dteixeira.com.br"
+smtp_host: "email-smtp.us-east-1.amazonaws.com"
+smtp_port: 587
+smtp_ssl: true
+from_addr: "alert@dteixeira.com.br"
+smtp_auth_file: "/opt/config/smtp_auth_file.yaml"

@@ -1,0 +1,18 @@
+# elasticsearch-master.service.yaml
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: monitoring
+  name: elasticsearch-master
+  labels:
+    app: elasticsearch
+    role: master
+spec:
+  ports:
+  - port: 9300
+    name: transport
+  selector:
+    app: elasticsearch
+    role: master
+---

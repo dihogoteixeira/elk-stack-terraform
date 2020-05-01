@@ -1,0 +1,32 @@
+# metricbeat.indice-lifecycle.configmap.yml
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: monitoring
+  name: metricbeat-indice-lifecycle
+  labels:
+    app: metricbeat
+data:
+  indice-lifecycle.json: |-
+    {
+      "policy": {
+        "phases": {
+          "hot": {
+            "actions": {
+              "rollover": {
+                "max_size": "5GB" ,
+                "max_age": "7d"
+              }
+            }
+          },
+          "delete": {
+            "min_age": "15d",
+            "actions": {
+              "delete": {}
+            }
+          }
+        }
+      }
+    }
+---

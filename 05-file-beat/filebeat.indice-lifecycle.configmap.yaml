@@ -1,0 +1,32 @@
+# filebeat.indice-lifecycle.configmap.yml
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: monitoring
+  name: filebeat-indice-lifecycle
+  labels:
+    app: filebeat
+data:
+  indice-lifecycle.json: |-
+    {
+      "policy": {
+        "phases": {
+          "hot": {
+            "actions": {
+              "rollover": {
+                "max_size": "5GB" ,
+                "max_age": "7d"
+              }
+            }
+          },
+          "delete": {
+            "min_age": "15d",
+            "actions": {
+              "delete": {}
+            }
+          }
+        }
+      }
+    }
+---

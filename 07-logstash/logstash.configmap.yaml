@@ -1,0 +1,31 @@
+# logstash.configmap.yaml
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: logstash-configmap
+  namespace: monitoring
+data:
+  logstash.yml: |-
+    http.host: "0.0.0.0"
+    path.config: /usr/share/logstash/pipeline
+
+  logstash.conf: |-
+    input {
+       beats {
+         port => 5044
+         host => "0.0.0.0"
+       }
+    }
+    output {
+       elasticsearch {
+         hosts => [ "http://elasticsearch-client.monitoring.svc.cluster.local:9200" ]
+         user => "${ELASTICSEARCH_USER}"
+         password => "${ELASTICSEARCH_PASSWORD}"
+         index => "%{[@metadata][beat]}-%{[@metadata][version]}"
+         manage_template => false
+         ilm_enabled => false
+         document_type => "%{[@metadata][beat]}"
+       }
+       stdout {}
+    }

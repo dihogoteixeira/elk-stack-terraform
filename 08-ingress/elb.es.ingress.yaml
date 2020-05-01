@@ -1,0 +1,26 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: monitoring
+  name: es-ingest-data
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-internal: 0.0.0.0/0
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: http
+    service.beta.kubernetes.io/aws-load-balancer-additional-resource-tags: "Environment=Monitoramento,EnvironmentType=PROD,Project=monitoramento"
+    service.beta.kubernetes.io/aws-load-balancer-ssl-cert: arn:aws:acm:us-east-1:${ACCOUNT_NUMBER}:certificate/9b898bbb-d0a3-4368-a545-4387007d2a2b
+    service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "443"
+  labels:
+    app: elasticsearch
+spec:
+  ports:
+  - port: 9200
+    targetPort: 9200
+    name: http
+  - port: 9203
+    targetPort: 9200
+    name: https
+  selector:
+    app: elasticsearch
+    role: client
+  type: LoadBalancer

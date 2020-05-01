@@ -1,0 +1,51 @@
+# Informe as credenciais de acessso AWS
+
+access_key = "XXXXXXXXXXXXXXXX"
+secret_key = "r1l4EAN+XXXXXXXXXXXXXXXXXXXXX"
+region = "us-east-1"
+
+# aws_profile = "aws_profile"
+# aws_role_arn = "arn:aws:iam::00000000000000:role/role_name"
+# aws_region = "us-east-1"
+
+# Informar o AWS Account ID
+
+aws-account-id = "00000000000000"
+
+# Informe o nome do cluster EKS
+
+cluster-name = "NOME_DO_CLUSTER_EKS"
+
+# Informe as zonas de disponibilidades de acordo com a região AWS:
+# OBS: A quantitade de AZs, deve ser igual ao de Subnets
+
+azs = ["az1_id", "az2_id", "az3_id"]
+
+# Informe o nome da VPC criada anteriormente, caso não exista á necessário criar uma:
+
+vpc-name = "NOME_DA_VPC_EXISTENTE"  # *** Essa informação é case sesitive, infome o nome do recurso conforme 
+# descrito na console AWS (Networking & Content Delivery > VPC > Your VPCs).
+
+private-subnets = ["subnet-00000000", "subnet-00000000", "subnet-00000000"]
+
+public-ips-ingress = ["000.000.000.000/32","000.000.000.000/32"]
+
+# Informe o tipo de instância EC2 (Worker Nodes)
+
+instance-type = "TIPO_DE_INSTÂNCIA"
+
+spot-price = "VALOR_LANCE_PARA_INSTÂNCIA_SPOT" ### Exemplo: 0.400
+
+# Informe a chave de acesso a instância EC2 (Worker Nodes)
+
+key-name = "NOME_DA_KEY_PAIR" ### Chave a ser utilizada para acesso a instância 
+                              ### EC2 (WORKER-NODES), a mesma deve ser criada antes.
+
+# INFORME OS VALORES PARA TAGUEAMENTO DO AMBIENTE:
+
+# Segue exemplo:
+
+Environment = "application"
+Project = "monitoramento"
+EnvironmentType = "PROD"
+

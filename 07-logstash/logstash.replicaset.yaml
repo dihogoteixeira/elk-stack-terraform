@@ -1,0 +1,88 @@
+# logstash.replicaset.yaml
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  namespace: monitoring
+  name: logstash
+  labels:
+    app: logstash
+    role: logstash
+spec:
+  serviceName: logstash
+  replicas: 1
+  selector:
+    matchLabels:
+      app: logstash
+      role: logstash
+  template:
+    metadata:
+      labels:
+        app: logstash
+        role: logstash
+    spec:
+      # spec.template.spec.initContainers
+      initContainers:
+        # Increase the ulimit
+        # https://www.elastic.co/guide/en/elasticsearch/reference/current/docker.html#_notes_for_production_use_and_defaults
+        - name: increase-the-ulimit
+          image: docker.elastic.co/logstash/logstash:7.5.2
+          command: ['sh', '-c', 'ulimit -n 65536']
+          securityContext:
+            privileged: true
+      # spec.template.spec.containers
+      containers:
+        - name: logstash
+          image: docker.elastic.co/logstash/logstash:7.5.2
+          ports:
+          - containerPort: 5044
+          resources:
+            requests:
+              cpu: "0.25"
+            limits:
+              cpu: 1
+              memory: 1Gi
+          # spec.template.spec.containers[elasticsearch].env
+          env:
+            - name: ES_JAVA_OPTS
+              value: -Xms256m -Xmx256m
+            - name: ELASTICSEARCH_HOSTS
+              value: "http://elasticsearch-client.monitoring.svc.cluster.local:9200"
+            - name: ELASTICSEARCH_USER
+              value: "beats_system"
+            - name: ELASTICSEARCH_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: elasticsearch-pw-beats
+                  key: password
+          # spec.template.spec.containers[elasticsearch].volumeMounts
+          volumeMounts:
+            - name: config-volume
+              mountPath: /usr/share/logstash/config
+            - name: logstash-pipeline-volume
+              mountPath: /usr/share/logstash/pipeline
+      volumes:
+        - name: config-volume
+          configMap:
+            name: logstash-configmap
+            items:
+            - key: logstash.yml
+              path: logstash.yml
+        - name: logstash-pipeline-volume
+          configMap:
+            name: logstash-configmap
+            items:
+              - key: logstash.conf
+                path: logstash.conf
+  # spec.volumeClaimTemplates
+  volumeClaimTemplates:
+    - metadata:
+        name: logstash-persistent-storage
+        annotations:
+          volume.beta.kubernetes.io/storage-class: "standard"
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: standard
+        resources:
+          requests:
+            storage: 10Gi

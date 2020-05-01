@@ -1,0 +1,161 @@
+# elasticsearch-data.replicaset.yaml
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  namespace: monitoring
+  name: elasticsearch-data
+  labels:
+    app: elasticsearch
+    role: data
+spec:
+  serviceName: elasticsearch-data
+  replicas: 4
+  selector:
+    matchLabels:
+      app: elasticsearch-data
+      role: data
+  template:
+    metadata:
+      labels:
+        app: elasticsearch-data
+        role: data
+    spec:
+      affinity:
+        # Try to put each ES master node on a different node in the K8s cluster
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - elasticsearch
+                    - key: role
+                      operator: In
+                      values:
+                        - data
+                topologyKey: kubernetes.io/hostname
+      terminationGracePeriodSeconds: 300
+
+      # spec.template.spec.initContainers
+      initContainers:
+        # Fix the permissions on the volume.
+        # https://www.elastic.co/guide/en/elasticsearch/reference/current/docker.html#_notes_for_production_use_and_defaults
+        - name: fix-the-volume-permission
+          image: docker.elastic.co/elasticsearch/elasticsearch:7.5.2
+          command: ['sh', '-c', 'chown -R 1000:1000 /usr/share/elasticsearch/data']
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - name: elasticsearch-data-storage
+              mountPath: /usr/share/elasticsearch/data
+        # Increase the default vm.max_map_count to 262144
+        # https://www.elastic.co/guide/en/elasticsearch/reference/current/docker.html#docker-cli-run-prod-mode
+        - name: increase-the-vm-max-map-count
+          image: docker.elastic.co/elasticsearch/elasticsearch:7.5.2
+          command: ['sysctl', '-w', 'vm.max_map_count=262144']
+          securityContext:
+            privileged: true
+        # Increase the ulimit
+        # https://www.elastic.co/guide/en/elasticsearch/reference/current/docker.html#_notes_for_production_use_and_defaults
+        - name: increase-the-ulimit
+          image: docker.elastic.co/elasticsearch/elasticsearch:7.5.2
+          command: ['sh', '-c', 'ulimit -n 65536']
+          securityContext:
+            privileged: true
+
+      # spec.template.spec.containers
+      containers:
+        - name: elasticsearch-data
+          image: docker.elastic.co/elasticsearch/elasticsearch:7.5.2
+          ports:
+            - containerPort: 9300
+              name: transport
+          livenessProbe:
+            tcpSocket:
+              port: transport
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: "0.25"
+            limits:
+              cpu: 1
+              memory: 1Gi
+
+          # spec.template.spec.containers[elasticsearch].env
+          env:
+            - name: NODE_LIST
+              value: "elasticsearch-master.monitoring.svc.cluster.local"
+            - name: MASTER_NODES
+              value: "elasticsearch-master-0,elasticsearch-master-1,elasticsearch-master-2"
+            - name: ES_JAVA_OPTS
+              value: -Xms512m -Xmx512m
+            - name: CLUSTER_NAME
+              value: elasticsearch
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+
+          # spec.template.spec.containers[elasticsearch].volumeMounts
+          volumeMounts:
+            - name: config
+              mountPath: /usr/share/elasticsearch/config/elasticsearch.yml
+              readOnly: true
+              subPath: elasticsearch.yml
+            - name: elasticsearch-data-storage
+              mountPath: /usr/share/elasticsearch/data
+
+      # spec.template.spec
+      volumes:
+        - name: config
+          configMap:
+            name: elasticsearch-data-config
+        - name: "elasticsearch-data-storage"
+          emptyDir:
+            medium: ""
+---
+apiVersion: policy/v1beta1
+kind: PodDisruptionBudget
+metadata:
+  namespace: monitoring
+  name: elasticsearch-data
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: elasticsearch
+      role: data
+
+
+#          # spec.template.spec.containers[elasticsearch].volumeMounts
+#          volumeMounts:
+#            - name: config
+#              mountPath: /usr/share/elasticsearch/config/elasticsearch.yml
+#              readOnly: true
+#              subPath: elasticsearch.yml
+#            - name: elasticsearch-data-persistent-storage
+#              mountPath: /usr/share/elasticsearch/data
+#
+#      # spec.template.spec
+#      volumes:
+#        - name: config
+#          configMap:
+#            name: elasticsearch-data-config
+#
+#  # spec.volumeClaimTemplates
+#  volumeClaimTemplates:
+#    - metadata:
+#        name: elasticsearch-data-persistent-storage
+#        annotations:
+#          volume.beta.kubernetes.io/storage-class: "data-st1"
+#      spec:
+#        accessModes: [ "ReadWriteOnce" ]
+#        storageClassName: data-st1
+#        resources:
+#          requests:
+#            storage: 500Gi

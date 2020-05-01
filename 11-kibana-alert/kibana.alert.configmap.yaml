@@ -1,0 +1,23 @@
+# kibana.alert.configmap.yaml
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: monitoring
+  name: kibana-alert-config
+  labels:
+    app: kibana-alert
+    role: kibana-alert
+data:
+  kibana.yml: |-
+    server.host: 0.0.0.0
+    server.port: 5602
+
+    elastalert-kibana-plugin.serverHost: ${ELASTALERT_HOST}
+    elastalert-kibana-plugin.serverPort: ${ELASTALERT_PORT}
+
+    elasticsearch:
+      hosts: ${ELASTICSEARCH_HOSTS}
+      username: ${ELASTICSEARCH_USER}
+      password: ${ELASTICSEARCH_PASSWORD}
+---

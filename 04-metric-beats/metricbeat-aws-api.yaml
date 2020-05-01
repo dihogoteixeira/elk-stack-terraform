@@ -1,0 +1,81 @@
+# metricbeat-aws-api.yaml
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: monitoring
+  name: metricbeat-aws-api
+  labels:
+    app: metricbeat
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: metricbeat
+  template:
+    metadata:
+      labels:
+        app: metricbeat
+    spec:
+      containers:
+      - name: metricbeat-aws-api
+        image: docker.elastic.co/beats/metricbeat:7.5.2
+        args: [
+          "-c", "/etc/metricbeat.yml",
+          "-e",
+        ]
+        env:
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: aws-credentials
+              key: username
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: aws-credentials
+              key: password     
+
+        - name: ELASTICSEARCH_HOST
+          value: elasticsearch-client.monitoring.svc.cluster.local
+        - name: ELASTICSEARCH_USERNAME
+          value: elastic
+        - name: ELASTICSEARCH_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: elasticsearch-pw-elastic
+              key: password
+        - name: KIBANA_HOST
+          value: kibana.monitoring.svc.cluster.local
+        - name: KIBANA_PORT
+          value: "5601"
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        securityContext:
+          runAsUser: 0
+        resources:
+          limits:
+            memory: 200Mi
+          requests:
+            cpu: 100m
+            memory: 100Mi
+        volumeMounts:
+        - name: config
+          mountPath: /etc/metricbeat.yml
+          readOnly: true
+          subPath: metricbeat.yml
+        - name: modules
+          mountPath: /usr/share/metricbeat/modules.d
+          readOnly: true
+      volumes:
+      - name: config
+        configMap:
+          defaultMode: 0600
+          name: metricbeat-aws-api-config
+      - name: modules
+        configMap:
+          defaultMode: 0600
+          name: metricbeat-aws-api-config          
+---

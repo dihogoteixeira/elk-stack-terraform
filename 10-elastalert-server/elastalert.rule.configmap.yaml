@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: logstash-rule
+  namespace: monitoring
+  labels:
+    app: elastalert
+data:
+  rammstein.yaml: |-
+    name: Error
+    type: frequency
+    index: metricbeat-*
+    num_events: 1
+    timeframe:
+        hours: 1
+    filter:
+    - query_string:
+        query: "message: Error"
+    alert:
+    - "email"
+    email:
+    - "alerta@dteixeira.com.br"
