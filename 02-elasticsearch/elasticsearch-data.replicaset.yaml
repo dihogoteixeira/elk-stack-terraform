@@ -50,7 +50,7 @@ spec:
           securityContext:
             privileged: true
           volumeMounts:
-            - name: elasticsearch-data-storage
+            - name: elasticsearch-data-persistent-storage
               mountPath: /usr/share/elasticsearch/data
         # Increase the default vm.max_map_count to 262144
         # https://www.elastic.co/guide/en/elasticsearch/reference/current/docker.html#docker-cli-run-prod-mode
@@ -107,7 +107,7 @@ spec:
               mountPath: /usr/share/elasticsearch/config/elasticsearch.yml
               readOnly: true
               subPath: elasticsearch.yml
-            - name: elasticsearch-data-storage
+            - name: elasticsearch-data-persistent-storage
               mountPath: /usr/share/elasticsearch/data
 
       # spec.template.spec
@@ -115,9 +115,20 @@ spec:
         - name: config
           configMap:
             name: elasticsearch-data-config
-        - name: "elasticsearch-data-storage"
-          emptyDir:
-            medium: ""
+
+  # spec.volumeClaimTemplates
+  volumeClaimTemplates:
+    - metadata:
+        name: elasticsearch-data-persistent-storage
+        annotations:
+          volume.beta.kubernetes.io/storage-class: "data-st1"
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: data-st1
+        resources:
+          requests:
+            storage: 500Gi
+
 ---
 apiVersion: policy/v1beta1
 kind: PodDisruptionBudget
@@ -130,7 +141,6 @@ spec:
     matchLabels:
       app: elasticsearch
       role: data
-
 
 #          # spec.template.spec.containers[elasticsearch].volumeMounts
 #          volumeMounts:
@@ -146,16 +156,6 @@ spec:
 #        - name: config
 #          configMap:
 #            name: elasticsearch-data-config
-#
-#  # spec.volumeClaimTemplates
-#  volumeClaimTemplates:
-#    - metadata:
-#        name: elasticsearch-data-persistent-storage
-#        annotations:
-#          volume.beta.kubernetes.io/storage-class: "data-st1"
-#      spec:
-#        accessModes: [ "ReadWriteOnce" ]
-#        storageClassName: data-st1
-#        resources:
-#          requests:
-#            storage: 500Gi
+#        - name: "elasticsearch-data-persistent-storage"
+#          emptyDir:
+#            medium: ""
